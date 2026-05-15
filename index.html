@@ -15,7 +15,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px 16px 40px;
+  padding: 12px 12px 30px;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -28,26 +28,26 @@ body {
 /* ===== 标题 ===== */
 .header {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 .header h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: #2c6daa;
   letter-spacing: 2px;
 }
 .header p {
-  font-size: 13px;
+  font-size: 12px;
   color: #6a9cc4;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* ===== 卡片通用样式 ===== */
 .card {
   background: #fff;
   border-radius: 16px;
-  padding: 24px 20px;
-  margin-bottom: 16px;
+  padding: 16px 16px;
+  margin-bottom: 12px;
   box-shadow: 0 2px 16px rgba(44, 109, 170, 0.08);
   transition: box-shadow 0.3s;
 }
@@ -154,13 +154,13 @@ body {
 .main-photo-wrap {
   border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   background: #f0f5fa;
 }
 .main-photo-wrap img {
   width: 100%;
   display: block;
-  max-height: 360px;
+  max-height: 240px;
   object-fit: contain;
 }
 
@@ -235,31 +235,35 @@ body {
 /* 左右并置布局 */
 .result-grid {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
 }
 .result-left {
-  flex: 1 1 55%;
+  flex: 1 1 50%;
   min-width: 0;
 }
 .result-right {
-  flex: 1 1 45%;
+  flex: 1 1 50%;
   min-width: 0;
 }
 .result-right .advice-card {
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 .result-right .advice-card-header {
-  padding: 8px 10px;
+  padding: 7px 9px;
+  gap: 4px;
 }
+.result-right .advice-icon { font-size: 14px; }
+.result-right .advice-title { font-size: 13px; }
 .result-right .advice-card-body {
-  padding: 0 10px 10px;
+  padding: 0 9px 9px;
   font-size: 12px;
+  line-height: 1.6;
 }
 @media (max-width: 500px) {
   .result-grid {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   .result-left, .result-right {
     flex: 1 1 auto;
@@ -269,10 +273,10 @@ body {
 /* 总分卡片 */
 .score-card {
   text-align: center;
-  padding: 20px;
+  padding: 12px 0;
 }
 .score-big {
-  font-size: 72px;
+  font-size: 56px;
   font-weight: 800;
   color: #3b8ed4;
   line-height: 1;
@@ -283,12 +287,12 @@ body {
   margin-top: 6px;
 }
 .score-comment {
-  font-size: 13px;
+  font-size: 12px;
   color: #777;
-  margin-top: 16px;
-  line-height: 1.8;
+  margin-top: 10px;
+  line-height: 1.7;
   text-align: left;
-  padding: 0 4px;
+  padding: 0 2px;
 }
 .score-comment .bullet {
   display: block;
@@ -305,13 +309,13 @@ body {
 .breakdown {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 4px;
 }
 .dim-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 .dim-label {
   width: 70px;
@@ -345,7 +349,7 @@ body {
 /* ===== 重新开始按钮 ===== */
 .btn-restart-wrap {
   text-align: center;
-  margin-top: 16px;
+  margin-top: 10px;
 }
 .btn-restart {
   padding: 12px 36px;
@@ -397,11 +401,12 @@ body {
 /* ===== 照片类型提示条 ===== */
 .photo-type-banner {
   display: none;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.6;
-  margin-bottom: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  margin-top: 8px;
 }
 .photo-type-banner.show { display: block; }
 .photo-type-banner.warn {
