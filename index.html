@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>颜值打分器</title>
+<style>
+/* ===== 基础重置 ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(135deg, #e8f4fd 0%, #d6eeff 50%, #c5e3fb 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px 16px 40px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== 主容器 ===== */
+.container {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ===== 标题 ===== */
+.header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c6daa;
+  letter-spacing: 2px;
+}
+.header p {
+  font-size: 13px;
+  color: #6a9cc4;
+  margin-top: 4px;
+}
+
+/* ===== 卡片通用样式 ===== */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 16px rgba(44, 109, 170, 0.08);
+  transition: box-shadow 0.3s;
+}
+
+/* ===== API Key 区域 ===== */
+.api-key-section {
+  display: none;
+}
+.api-key-section.show {
+  display: block;
+}
+.api-key-section .hint {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+.api-key-section .hint a {
+  color: #5b9bd5;
+  text-decoration: none;
+}
+.api-key-row {
+  display: flex;
+  gap: 8px;
+}
+.api-key-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid #d0e2f2;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.api-key-row input:focus {
+  border-color: #5b9bd5;
+}
+.api-key-row button {
+  padding: 10px 18px;
+  background: #5b9bd5;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.api-key-row button:hover {
+  background: #4a8ac4;
+}
+.api-key-status {
+  font-size: 12px;
+  margin-top: 8px;
+}
+.api-key-status.success { color: #4caf50; }
+.api-key-status.error { color: #e88; }
+
+/* ===== 上传区域 ===== */
+.upload-area {
+  border: 2px dashed #c5ddf5;
+  border-radius: 14px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+.upload-area:hover, .upload-area.drag-over {
+  border-color: #5b9bd5;
+  background: #f5fafe;
+}
+.upload-area.has-image {
+  display: none;
+}
+.upload-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+.upload-text {
+  font-size: 15px;
+  color: #555;
+}
+.upload-sub {
+  font-size: 12px;
+  color: #999;
+  margin-top: 6px;
+}
+#fileInput {
+  display: none;
+}
+
+/* ===== 主卡片（上传后显示，照片始终可见） ===== */
+.main-card {
+  display: none;
+}
+.main-card.show {
+  display: block;
+}
+
+/* 照片区 */
+.main-photo-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: #f0f5fa;
+}
+.main-photo-wrap img {
+  width: 100%;
+  display: block;
+  max-height: 360px;
+  object-fit: contain;
+}
+
+/* 操作按钮 */
+.photo-actions {
+  display: flex;
+  gap: 10px;
+}
+.photo-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-reselect {
+  background: #f0f5fa;
+  color: #666;
+}
+.btn-reselect:hover {
+  background: #e2ecf5;
+}
+.btn-score {
+  background: #5b9bd5;
+  color: #fff;
+  font-weight: 600;
+}
+.btn-score:hover {
+  background: #4a8ac4;
+}
+.btn-score:disabled {
+  background: #b0cee8;
+  cursor: not-allowed;
+}
+
+/* 加载中（内嵌在照片下方） */
+.loading-inline {
+  display: none;
+  text-align: center;
+  padding: 16px 0 8px;
+  color: #999;
+  font-size: 13px;
+}
+.loading-inline.show {
+  display: block;
+}
+.spinner-sm {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid #e2ecf5;
+  border-top-color: #5b9bd5;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 结果区 */
+.result-content {
+  display: none;
+}
+.result-content.show {
+  display: block;
+}
+
+/* 左右并置布局 */
+.result-grid {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.result-left {
+  flex: 1 1 55%;
+  min-width: 0;
+}
+.result-right {
+  flex: 1 1 45%;
+  min-width: 0;
+}
+.result-right .advice-card {
+  margin-bottom: 6px;
+}
+.result-right .advice-card-header {
+  padding: 8px 10px;
+}
+.result-right .advice-card-body {
+  padding: 0 10px 10px;
+  font-size: 12px;
+}
+@media (max-width: 500px) {
+  .result-grid {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .result-left, .result-right {
+    flex: 1 1 auto;
+  }
+}
+
+/* 总分卡片 */
+.score-card {
+  text-align: center;
+  padding: 20px;
+}
+.score-big {
+  font-size: 72px;
+  font-weight: 800;
+  color: #3b8ed4;
+  line-height: 1;
+}
+.score-label {
+  font-size: 14px;
+  color: #999;
+  margin-top: 6px;
+}
+.score-comment {
+  font-size: 13px;
+  color: #777;
+  margin-top: 16px;
+  line-height: 1.8;
+  text-align: left;
+  padding: 0 4px;
+}
+.score-comment .bullet {
+  display: block;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid #d6e8f8;
+  margin-bottom: 8px;
+}
+.score-comment .bullet strong {
+  color: #3b8ed4;
+  font-weight: 600;
+}
+
+/* 各维度评分 */
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+.dim-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dim-label {
+  width: 70px;
+  font-size: 14px;
+  color: #666;
+  text-align: right;
+  flex-shrink: 0;
+}
+.dim-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #eaf3fb;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.dim-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #7ec4f0, #3b8ed4);
+  border-radius: 5px;
+  transition: width 0.8s ease;
+}
+.dim-score {
+  width: 52px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b8ed4;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* ===== 重新开始按钮 ===== */
+.btn-restart-wrap {
+  text-align: center;
+  margin-top: 16px;
+}
+.btn-restart {
+  padding: 12px 36px;
+  background: #fff;
+  color: #5b9bd5;
+  border: 1.5px solid #c5ddf5;
+  border-radius: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-restart:hover {
+  background: #f5fafe;
+  border-color: #5b9bd5;
+}
+
+/* ===== 错误提示 ===== */
+.error-msg {
+  display: none;
+  text-align: center;
+  padding: 14px;
+  background: #fff5f5;
+  border-radius: 10px;
+  color: #d47575;
+  font-size: 14px;
+  margin-top: 12px;
+}
+.error-msg.show {
+  display: block;
+}
+
+/* ===== 设置按钮 ===== */
+.settings-toggle {
+  text-align: center;
+  margin-top: 12px;
+}
+.settings-toggle button {
+  background: none;
+  border: none;
+  color: #9abfdf;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+.settings-toggle button:hover {
+  color: #5b9bd5;
+}
+
+/* ===== 照片类型提示条 ===== */
+.photo-type-banner {
+  display: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.photo-type-banner.show { display: block; }
+.photo-type-banner.warn {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  color: #8d6e00;
+}
+.photo-type-banner.info {
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  color: #2e7d32;
+}
+
+/* ===== 优化建议面板 ===== */
+.advice-panels { margin-top: 14px; }
+
+.advice-card {
+  background: #fafcfe;
+  border: 1px solid #eaf0f6;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.advice-card.locked {
+  opacity: 0.55;
+  filter: grayscale(30%);
+}
+.advice-card-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+.advice-card-header:hover { background: #f0f5fb; }
+.advice-icon { font-size: 16px; flex-shrink: 0; }
+.advice-title { flex: 1; font-size: 14px; font-weight: 600; color: #444; }
+.advice-status { font-size: 12px; flex-shrink: 0; }
+.advice-status.locked { color: #999; }
+.advice-status.unlocked { color: #4caf50; }
+.advice-arrow { font-size: 12px; color: #aaa; transition: transform 0.2s; flex-shrink: 0; }
+.advice-card.open .advice-arrow { transform: rotate(180deg); }
+
+.advice-card-body {
+  display: none;
+  padding: 0 14px 14px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.7;
+}
+.advice-card.open .advice-card-body { display: block; }
+.advice-card-body .advice-item {
+  padding: 8px 0;
+  border-bottom: 1px dotted #eef3f8;
+}
+.advice-card-body .advice-item:last-child { border-bottom: none; }
+.advice-severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-right: 6px; }
+.advice-severity.mild { background: #e8f5e9; color: #388e3c; }
+.advice-severity.moderate { background: #fff3e0; color: #e65100; }
+.advice-severity.obvious { background: #fce4ec; color: #c62828; }
+.advice-field { margin-bottom: 6px; }
+.advice-field-label { font-weight: 600; color: #3b8ed4; display: inline-block; min-width: 60px; }
+
+/* ===== AI 形象照 ===== */
+.ai-image-section {
+  margin-top: 16px;
+  text-align: center;
+}
+.btn-ai-gen {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #7c4dff, #536dfe);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.btn-ai-gen:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-ai-gen:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+.ai-image-loading {
+  display: none;
+  padding: 16px 0;
+  color: #888;
+  font-size: 13px;
+}
+.ai-image-loading.show { display: block; }
+.ai-image-loading .spinner-sm { margin-right: 8px; }
+
+.ai-image-result { display: none; margin-top: 12px; }
+.ai-image-result.show { display: block; }
+.ai-image-result img {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.ai-disclaimer {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 8px;
+}
+
+.ai-image-error {
+  display: none;
+  padding: 10px;
+  background: #fff5f5;
+  border-radius: 8px;
+  color: #c62828;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.ai-image-error.show { display: block; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 999;
+  animation: toastIn 0.3s ease;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ===== 底部 ===== */
+.footer {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #9abfdf;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 标题 -->
+  <div class="header">
+    <h1>颜值打分器</h1>
+    <p>上传照片 · AI 智能评分</p>
+  </div>
+
+  <!-- API Key 设置 -->
+  <div class="card api-key-section" id="apiKeySection">
+    <div class="hint">
+      首次使用请输入通义千问 API Key<br>
+      <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank">点此免费获取 →</a>
+    </div>
+    <div class="api-key-row">
+      <input type="password" id="apiKeyInput" placeholder="粘贴 API Key">
+      <button onclick="saveApiKey()">保存</button>
+    </div>
+    <div class="api-key-status" id="apiKeyStatus"></div>
+  </div>
+
+  <!-- 上传区域 -->
+  <div class="card upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-icon">📷</div>
+    <div class="upload-text">点击上传人像照片</div>
+    <div class="upload-sub">支持 JPG / PNG，也可拖拽到此处</div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+
+  <!-- 主卡片：照片 + 操作 + 加载 + 结果 -->
+  <div class="card main-card" id="mainCard">
+    <!-- 照片始终显示 -->
+    <div class="main-photo-wrap">
+      <img id="mainPhoto" src="" alt="照片">
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="photo-actions" id="photoActions">
+      <button class="btn-reselect" onclick="reselectImage()">重新选择</button>
+      <button class="btn-score" id="btnScore" onclick="startScoring()">开始评分</button>
+    </div>
+
+    <!-- 加载中 -->
+    <div class="loading-inline" id="loadingInline">
+      <div class="spinner-sm"></div>
+      <span>AI 正在分析中，请稍候……</span>
+    </div>
+
+    <!-- 评分结果 -->
+    <div class="result-content" id="resultContent">
+      <div class="result-grid">
+        <!-- 左栏：评分 -->
+        <div class="result-left">
+          <div class="score-card">
+            <div class="score-big" id="scoreBig">--</div>
+            <div class="score-label">综合评分</div>
+            <div class="score-comment" id="scoreComment"></div>
+          </div>
+          <div class="breakdown" id="breakdown"></div>
+        </div>
+
+        <!-- 右栏：优化建议 -->
+        <div class="result-right">
+          <div class="advice-panels" id="advicePanels">
+            <div class="advice-card" id="postureCard">
+              <div class="advice-card-header" onclick="toggleAdviceCard('postureCard')">
+                <span class="advice-icon">🏃</span>
+                <span class="advice-title">体态优化</span>
+                <span class="advice-status" id="postureStatus"></span>
+                <span class="advice-arrow">▾</span>
+              </div>
+              <div class="advice-card-body" id="postureBody"></div>
+            </div>
+            <div class="advice-card" id="photoAdviceCard">
+              <div class="advice-card-header" onclick="toggleAdviceCard('photoAdviceCard')">
+                <span class="advice-icon">📷</span>
+                <span class="advice-title">拍照建议</span>
+                <span class="advice-status" id="photoAdviceStatus"></span>
+                <span class="advice-arrow">▾</span>
+              </div>
+              <div class="advice-card-body" id="photoAdviceBody"></div>
+            </div>
+            <div class="advice-card" id="styleCard">
+              <div class="advice-card-header" onclick="toggleAdviceCard('styleCard')">
+                <span class="advice-icon">👔</span>
+                <span class="advice-title">穿搭建议</span>
+                <span class="advice-status" id="styleStatus"></span>
+                <span class="advice-arrow">▾</span>
+              </div>
+              <div class="advice-card-body" id="styleBody"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 照片类型提示条 -->
+      <div class="photo-type-banner" id="photoTypeBanner"></div>
+
+      <!-- AI 形象照（暂缓上线） -->
+      <div class="ai-image-section" id="aiImageSection" style="display:none"></div>
+
+      <div class="btn-restart-wrap">
+        <button class="btn-restart" onclick="restart()">重新上传评分</button>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <!-- 设置入口 -->
+  <div class="settings-toggle">
+    <button onclick="toggleApiKeySection()">修改 API Key</button>
+  </div>
+
+  <!-- 底部 -->
+  <div class="footer">评分结果由 AI 生成，仅供参考娱乐</div>
+</div>
+
+<script>
+// ===== 常量 =====
+const QWEN_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+const DEFAULT_API_KEY = 'sk-e629a4cc6a4f41679731231606ab8a09';
+const STORAGE_KEY = 'beauty_rater_api_key';
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// ===== DOM 元素 =====
+const $ = (id) => document.getElementById(id);
+const apiKeySection = $('apiKeySection');
+const apiKeyInput = $('apiKeyInput');
+const apiKeyStatus = $('apiKeyStatus');
+const uploadArea = $('uploadArea');
+const fileInput = $('fileInput');
+const mainCard = $('mainCard');
+const mainPhoto = $('mainPhoto');
+const photoActions = $('photoActions');
+const btnScore = $('btnScore');
+const loadingInline = $('loadingInline');
+const resultContent = $('resultContent');
+const scoreBig = $('scoreBig');
+const scoreComment = $('scoreComment');
+const breakdown = $('breakdown');
+const errorMsg = $('errorMsg');
+const photoTypeBanner = $('photoTypeBanner');
+const postureCard = $('postureCard');
+const postureBody = $('postureBody');
+const postureStatus = $('postureStatus');
+const photoAdviceCard = $('photoAdviceCard');
+const photoAdviceBody = $('photoAdviceBody');
+const photoAdviceStatus = $('photoAdviceStatus');
+const styleCard = $('styleCard');
+const styleBody = $('styleBody');
+const styleStatus = $('styleStatus');
+const btnAIGen = $('btnAIGen');
+const aiImageLoading = $('aiImageLoading');
+const aiImageResult = $('aiImageResult');
+const aiImage = $('aiImage');
+const aiImageError = $('aiImageError');
+
+let currentImageData = null; // { base64, mimeType, dataUrl }
+
+// ===== 初始化 =====
+function init() {
+  const savedKey = localStorage.getItem(STORAGE_KEY);
+  if (savedKey) {
+    apiKeyInput.value = savedKey;
+  }
+  // 已内置默认 Key，直接使用，无需弹出设置
+  setupDragDrop();
+}
+init();
+
+// ===== API Key 管理 =====
+function saveApiKey() {
+  const key = apiKeyInput.value.trim();
+  if (!key) {
+    showApiKeyStatus('请输入 API Key', 'error');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, key);
+  showApiKeyStatus('API Key 已保存', 'success');
+  setTimeout(function() {
+    apiKeySection.classList.remove('show');
+    apiKeyStatus.textContent = '';
+    apiKeyStatus.className = 'api-key-status';
+  }, 1000);
+}
+
+function getApiKey() {
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_API_KEY;
+}
+
+function showApiKeyStatus(msg, type) {
+  apiKeyStatus.textContent = msg;
+  apiKeyStatus.className = 'api-key-status ' + type;
+}
+
+function toggleApiKeySection() {
+  apiKeySection.classList.toggle('show');
+}
+
+// ===== 图片上传 =====
+function handleFileSelect(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  processFile(file);
+}
+
+function setupDragDrop() {
+  uploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+  });
+  uploadArea.addEventListener('dragleave', function() {
+    uploadArea.classList.remove('drag-over');
+  });
+  uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    var file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  // 支持粘贴图片
+  document.addEventListener('paste', function(e) {
+    var items = e.clipboardData.items;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image/') === 0) {
+        processFile(items[i].getAsFile());
+        break;
+      }
+    }
+  });
+}
+
+function processFile(file) {
+  if (file.type.indexOf('image/') !== 0) {
+    showError('请选择图片文件');
+    return;
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    showError('图片不能超过 10MB');
+    return;
+  }
+
+  hideError();
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      currentImageData = compressImage(img, file.type);
+      mainPhoto.src = currentImageData.dataUrl;
+      showPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function compressImage(img, mimeType) {
+  var MAX_DIM = 1024;
+  var width = img.width;
+  var height = img.height;
+
+  if (width <= MAX_DIM && height <= MAX_DIM) {
+    var canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    return {
+      base64: canvas.toDataURL(mimeType, 0.85).split(',')[1],
+      mimeType: mimeType,
+      dataUrl: canvas.toDataURL(mimeType, 0.85)
+    };
+  }
+
+  if (width > height) {
+    height = Math.round(height * MAX_DIM / width);
+    width = MAX_DIM;
+  } else {
+    width = Math.round(width * MAX_DIM / height);
+    height = MAX_DIM;
+  }
+
+  var canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+  return {
+    base64: canvas.toDataURL(mimeType, 0.85).split(',')[1],
+    mimeType: mimeType,
+    dataUrl: canvas.toDataURL(mimeType, 0.85)
+  };
+}
+
+function showPreview() {
+  uploadArea.classList.add('has-image');
+  mainCard.classList.add('show');
+  photoActions.style.display = 'flex';
+  loadingInline.classList.remove('show');
+  resultContent.classList.remove('show');
+  photoTypeBanner.classList.remove('show');
+  photoTypeBanner.innerHTML = '';
+  postureBody.innerHTML = '';
+  postureCard.classList.remove('open', 'locked');
+  photoAdviceBody.innerHTML = '';
+  photoAdviceCard.classList.remove('open', 'locked');
+  styleBody.innerHTML = '';
+  styleCard.classList.remove('open', 'locked');
+  btnAIGen.disabled = true;
+  btnAIGen.style.display = 'inline-block';
+  aiImageLoading.classList.remove('show');
+  aiImageResult.classList.remove('show');
+  aiImageError.classList.remove('show');
+  aiImage.src = '';
+  hideError();
+  btnScore.disabled = false;
+  currentImageGenPrompt = '';
+}
+
+function reselectImage() {
+  currentImageData = null;
+  mainPhoto.src = '';
+  uploadArea.classList.remove('has-image');
+  mainCard.classList.remove('show');
+  photoActions.style.display = 'flex';
+  loadingInline.classList.remove('show');
+  resultContent.classList.remove('show');
+  hideError();
+  fileInput.value = '';
+}
+
+// ===== 评分 =====
+function startScoring() {
+  var apiKey = getApiKey();
+  if (!apiKey) {
+    apiKeySection.classList.add('show');
+    showError('请先设置通义千问 API Key');
+    return;
+  }
+  if (!currentImageData) {
+    showError('请先上传照片');
+    return;
+  }
+
+  photoActions.style.display = 'none';
+  resultContent.classList.remove('show');
+  loadingInline.classList.add('show');
+  hideError();
+
+  callQwenAPI(apiKey, currentImageData).then(function(result) {
+    displayResult(result);
+  }).catch(function(err) {
+    photoActions.style.display = 'flex';
+    showError(err.message || '评分失败，请重试');
+  }).finally(function() {
+    loadingInline.classList.remove('show');
+  });
+}
+
+async function callQwenAPI(apiKey, imageData) {
+  var prompt = '你是一位专业的面部美学与形象分析专家。请对照片进行全面分析，返回结构化 JSON。\n\n## 第一步：判断照片类型（极其重要！同一张照片多次判断必须一致）\n严格根据照片中人物身体的实际可见范围确定 photo_type，不要猜测，不要被背景或构图影响：\n- "head_only"：仅可见面部/头部/肩部，胸部以下完全不可见\n- "upper_body"：可见至少到胸部以下但膝盖以上，看不见膝盖及以下\n- "full_body"：可见全身或至少到膝盖（含膝盖）。只要能看到膝盖或以下部位就是 full_body\n- "non_human"：非真人照片\n判断标准：仅看身体可见范围，与颜值高低无关。照片裁切边缘在哪就是哪。\n\n## 第二步：颜值评分（所有含人脸照片）\n判断颜值等级后给出整数分：S级(90-100)/A级(80-89)/B级(65-79)/C级(50-64)/D级(35-49)/E级(0-34)\n维度：features(五官协调度)、symmetry(面部对称性)、skin(皮肤状态)、faceShape(脸型轮廓)、boneStructure(骨相结构)、temperament(气质神态)\noverall 综合分独立判断，不为各维度平均。所有分数为整数。\n\n## 第三步：脸型分析\nface_shape: { "type": "鹅蛋脸/圆脸/方脸/长脸/心形脸/菱形脸", "description": "简短特征描述" }\n\n## 第四步：体态分析（仅 upper_body 或 full_body）\n检测以下问题，每项标注 severity(轻度/中度/明显) + advice：驼背、圆肩、头前伸、溜肩、高低肩、翼状肩胛、骨盆前倾、骨盆后倾、脊柱侧弯、膝超伸、O型腿、X型腿、扁平足、高足弓、颈前探、肋骨外翻、核心松弛、臀肌无力。另评估整体体型(偏瘦/匀称/偏胖)。\n输出格式：{ "issues": [{ "name": "", "severity": "", "advice": "" }], "summary": "" }\n若 head_only 则 posture_advice: null\n\n## 第五步：拍照建议（所有含人脸照片）\nphoto_advice: { "best_angle": "", "lighting": "", "expression": "", "framing": "", "pose_tips": "", "style_keywords": [] }\nhead_only 时 pose_tips 仅涉及面部角度和表情。\n\n## 第六步：穿搭建议（仅 full_body）\nstyle_advice: { "body_type": "", "principles": "", "tops": "", "bottoms": "", "outerwear": "", "colors": "", "accessories": "", "avoid": "" }\n非 full_body 则 style_advice: null\n\n## 第七步：形象照生成 prompt（英文）\nimage_gen_prompt：一段英文描述，用于生成"该人物在采纳所有建议后的最佳形象"照片。包含：性别、年龄段、体型、穿搭风格、拍照姿势、光线氛围、背景。风格：高端人像摄影，专业棚拍或街拍。不要求还原具体面部特征。\n\n## 第八步：颜值评语\ncomment：3-5条精简评语，每条40字内，\\n分隔，>开头，重点用**加粗**\n\n## 输出格式（仅纯 JSON，无 markdown 标记）\n{\n  "photo_type": "head_only",\n  "overall": 整数,\n  "features": 整数,\n  "symmetry": 整数,\n  "skin": 整数,\n  "faceShape": 整数,\n  "boneStructure": 整数,\n  "temperament": 整数,\n  "face_shape": { "type": "", "description": "" },\n  "posture_advice": null或对象,\n  "photo_advice": { "best_angle": "", "lighting": "", "expression": "", "framing": "", "pose_tips": "", "style_keywords": [] },\n  "style_advice": null或对象,\n  "image_gen_prompt": "英文提示词",\n  "comment": "评语"\n}\n\n非真人照片：所有数值为0，各字段返回 null 或空。';
+
+  var body = {
+    model: 'qwen-vl-max',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: 'data:' + imageData.mimeType + ';base64,' + imageData.base64 } },
+        { type: 'text', text: prompt }
+      ]
+    }],
+    temperature: 0.1,
+    max_tokens: 2048
+  };
+
+  var resp = await fetch(QWEN_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!resp.ok) {
+    if (resp.status === 400) {
+      throw new Error('请求无效，请检查图片格式');
+    } else if (resp.status === 401 || resp.status === 403) {
+      throw new Error('API Key 无效或未开通权限');
+    } else if (resp.status === 429) {
+      throw new Error('请求过于频繁，请稍后再试');
+    } else {
+      throw new Error('API 请求失败 (HTTP ' + resp.status + ')');
+    }
+  }
+
+  var data = await resp.json();
+  var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if (!text) {
+    throw new Error('AI 未返回有效结果，请重试');
+  }
+
+  // 尝试解析 JSON（处理可能的 markdown 代码块包裹）
+  var jsonStr = text.trim();
+  var codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch) {
+    jsonStr = codeBlockMatch[1];
+  }
+  var result = JSON.parse(jsonStr);
+  result = addRandomDecimals(result);
+  return result;
+}
+
+function addRandomDecimals(result) {
+  var keys = ['overall', 'features', 'symmetry', 'skin', 'faceShape', 'boneStructure', 'temperament'];
+  var usedDecimals = [];
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var intVal = parseInt(result[key], 10) || 0;
+    if (intVal === 0) { result[key] = 0; continue; }
+    // 生成不重复的两位小数
+    var dec;
+    var attempts = 0;
+    do {
+      dec = Math.floor(Math.random() * 99) + 1; // 1-99
+      attempts++;
+    } while (usedDecimals.indexOf(dec) !== -1 && attempts < 200);
+    usedDecimals.push(dec);
+    var decimalStr = dec < 10 ? '0' + dec : '' + dec;
+    result[key] = parseFloat(intVal + '.' + decimalStr);
+  }
+  return result;
+}
+
+function displayResult(result) {
+  resultContent.classList.add('show');
+  loadingInline.classList.remove('show');
+  photoActions.style.display = 'none';
+
+  var overall = clampScore(result.overall);
+  scoreBig.textContent = overall.toFixed(2);
+  var commentHtml = formatComment(result.comment);
+  scoreComment.innerHTML = commentHtml;
+
+  var dims = [
+    { key: 'features', label: '五官协调度', score: clampScore(result.features) },
+    { key: 'symmetry', label: '面部对称性', score: clampScore(result.symmetry) },
+    { key: 'skin', label: '皮肤状态', score: clampScore(result.skin) },
+    { key: 'faceShape', label: '脸型轮廓', score: clampScore(result.faceShape) },
+    { key: 'boneStructure', label: '骨相结构', score: clampScore(result.boneStructure) },
+    { key: 'temperament', label: '气质神态', score: clampScore(result.temperament) }
+  ];
+
+  breakdown.innerHTML = dims.map(function(d) {
+    return '<div class="dim-item"><div class="dim-label">' + d.label + '</div><div class="dim-bar-wrap"><div class="dim-bar" style="width:' + d.score + '%"></div></div><div class="dim-score">' + d.score.toFixed(2) + '</div></div>';
+  }).join('');
+
+  requestAnimationFrame(function() {
+    var bars = breakdown.querySelectorAll('.dim-bar');
+    for (var i = 0; i < bars.length; i++) {
+      var bar = bars[i];
+      var w = bar.style.width;
+      bar.style.width = '0';
+      requestAnimationFrame((function(b, width) {
+        return function() { b.style.width = width; };
+      })(bar, w));
+    }
+  });
+
+  // 照片类型提示条
+  var pt = result.photo_type || 'head_only';
+  var bannerHtml = '';
+  var bannerClass = 'warn';
+  if (pt === 'head_only') {
+    bannerHtml = '📌 你上传的是<strong>脸部特写</strong>，无法分析体态与穿搭。建议上传一张清晰的<strong>全身照</strong>解锁全部建议。';
+    bannerClass = 'warn';
+  } else if (pt === 'upper_body') {
+    bannerHtml = '📌 当前仅可见<strong>上半身</strong>，穿搭建议需全身照。可先查看体态和拍照建议。';
+    bannerClass = 'warn';
+  } else if (pt === 'full_body') {
+    bannerHtml = '✅ 已检测到全身照，全部优化建议已解锁。';
+    bannerClass = 'info';
+  } else if (pt === 'non_human') {
+    bannerHtml = '⚠️ 未检测到人脸，无法进行评分与分析。请上传一张清晰的人像照片。';
+    bannerClass = 'warn';
+  } else {
+    bannerHtml = '📌 请上传一张清晰的<strong>全身照</strong>以解锁全部建议。';
+    bannerClass = 'warn';
+  }
+  photoTypeBanner.innerHTML = bannerHtml;
+  photoTypeBanner.className = 'photo-type-banner show ' + bannerClass;
+
+  // 体态建议
+  renderPostureCard(result.posture_advice, pt);
+
+  // 拍照建议
+  renderPhotoAdviceCard(result.photo_advice, result.face_shape);
+
+  // 穿搭建议
+  renderStyleCard(result.style_advice, pt);
+
+  // AI 形象照
+  if (pt === 'non_human' || !result.image_gen_prompt || result.image_gen_prompt.length < 10) {
+    btnAIGen.disabled = true;
+    btnAIGen.style.display = 'none';
+  } else {
+    btnAIGen.disabled = false;
+    btnAIGen.style.display = 'inline-block';
+  }
+  aiImageLoading.classList.remove('show');
+  aiImageResult.classList.remove('show');
+  aiImageError.classList.remove('show');
+  currentImageGenPrompt = result.image_gen_prompt || '';
+}
+
+function formatComment(text) {
+  if (!text) return '';
+  var lines = text.split('\n');
+  var html = '';
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    // 去掉开头的 > 标记
+    line = line.replace(/^>\s*/, '');
+    // **文字** 转 <strong>文字</strong>
+    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html += '<span class="bullet">' + line + '</span>';
+  }
+  return html;
+}
+
+function clampScore(val) {
+  var num = parseFloat(val);
+  if (isNaN(num)) return 0;
+  return Math.max(0, Math.min(100, num));
+}
+
+// ===== 优化建议渲染 =====
+var currentImageGenPrompt = '';
+
+function renderPostureCard(data, photoType) {
+  postureBody.innerHTML = '';
+  postureCard.classList.remove('open');
+  if (photoType === 'head_only' || !data || data.not_available) {
+    postureCard.classList.add('locked');
+    postureStatus.innerHTML = '<span class="advice-status locked">🔒 需上半身照</span>';
+    postureCard.querySelector('.advice-card-header').setAttribute('title', '需要上传包含上半身的照片才能分析体态');
+    return;
+  }
+  postureCard.classList.remove('locked');
+  postureStatus.innerHTML = '<span class="advice-status unlocked">✅ 已分析</span>';
+  postureCard.querySelector('.advice-card-header').removeAttribute('title');
+
+  var html = '';
+  var issues = data.issues || [];
+  if (issues.length === 0) {
+    html = '<p style="color:#4caf50;">体态基本良好，未见明显问题。</p>';
+  } else {
+    for (var i = 0; i < issues.length; i++) {
+      var sev = issues[i].severity || '中度';
+      var sevClass = (sev.indexOf('轻') >= 0) ? 'mild' : (sev.indexOf('明显') >= 0 ? 'obvious' : 'moderate');
+      html += '<div class="advice-item"><span class="advice-severity ' + sevClass + '">' + sev + '</span><strong>' + (issues[i].name || '') + '</strong>：' + (issues[i].advice || '') + '</div>';
+    }
+  }
+  if (data.summary) {
+    html += '<div class="advice-item" style="margin-top:4px;color:#888;font-size:12px;">' + data.summary + '</div>';
+  }
+  postureBody.innerHTML = html;
+}
+
+function renderPhotoAdviceCard(data, faceShape) {
+  photoAdviceBody.innerHTML = '';
+  photoAdviceCard.classList.remove('open');
+  if (!data) {
+    photoAdviceCard.classList.add('locked');
+    photoAdviceStatus.innerHTML = '<span class="advice-status locked">🔒</span>';
+    return;
+  }
+  photoAdviceCard.classList.remove('locked');
+  photoAdviceStatus.innerHTML = '<span class="advice-status unlocked">✅</span>';
+
+  var html = '';
+  if (faceShape && faceShape.type) {
+    html += '<div class="advice-field"><span class="advice-field-label">脸型</span>' + faceShape.type + '（' + (faceShape.description || '') + '）</div>';
+  }
+  var fields = [
+    { key: 'best_angle', label: '最佳角度' },
+    { key: 'lighting', label: '光线建议' },
+    { key: 'expression', label: '表情管理' },
+    { key: 'framing', label: '构图方式' },
+    { key: 'pose_tips', label: '姿势指导' }
+  ];
+  for (var i = 0; i < fields.length; i++) {
+    var val = data[fields[i].key];
+    if (val) {
+      html += '<div class="advice-field"><span class="advice-field-label">' + fields[i].label + '</span>' + val + '</div>';
+    }
+  }
+  if (data.style_keywords && data.style_keywords.length > 0) {
+    html += '<div class="advice-field"><span class="advice-field-label">风格关键词</span>' + data.style_keywords.join(' · ') + '</div>';
+  }
+  photoAdviceBody.innerHTML = html;
+}
+
+function renderStyleCard(data, photoType) {
+  styleBody.innerHTML = '';
+  styleCard.classList.remove('open');
+  if (photoType !== 'full_body' || !data || data.not_available) {
+    styleCard.classList.add('locked');
+    styleStatus.innerHTML = '<span class="advice-status locked">🔒 需全身照</span>';
+    styleCard.querySelector('.advice-card-header').setAttribute('title', '需要上传清晰的全身照才能分析穿搭');
+    return;
+  }
+  styleCard.classList.remove('locked');
+  styleStatus.innerHTML = '<span class="advice-status unlocked">✅ 已分析</span>';
+  styleCard.querySelector('.advice-card-header').removeAttribute('title');
+
+  var html = '';
+  var styleFields = [
+    { key: 'body_type', label: '体型' },
+    { key: 'principles', label: '穿搭原则' },
+    { key: 'tops', label: '上装' },
+    { key: 'bottoms', label: '下装' },
+    { key: 'outerwear', label: '外套' },
+    { key: 'colors', label: '色彩' },
+    { key: 'accessories', label: '配件' },
+    { key: 'avoid', label: '避免' }
+  ];
+  for (var i = 0; i < styleFields.length; i++) {
+    var val = data[styleFields[i].key];
+    if (val) {
+      html += '<div class="advice-field"><span class="advice-field-label">' + styleFields[i].label + '</span>' + val + '</div>';
+    }
+  }
+  if (!html) html = '<p>暂无穿搭建议</p>';
+  styleBody.innerHTML = html;
+}
+
+function toggleAdviceCard(cardId) {
+  var card = document.getElementById(cardId);
+  if (card.classList.contains('locked')) {
+    var msg = '此功能需要更完整的照片。';
+    if (cardId === 'postureCard') msg = '需要上传包含上半身或全身的照片才能分析体态。';
+    if (cardId === 'styleCard') msg = '需要上传清晰的全身照才能获取穿搭建议。';
+    showToast(msg);
+    return;
+  }
+  card.classList.toggle('open');
+}
+
+var currentToast = null;
+
+function showToast(msg) {
+  if (currentToast) { currentToast.remove(); currentToast = null; }
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  currentToast = toast;
+  setTimeout(function() { toast.remove(); if (currentToast === toast) currentToast = null; }, 2500);
+}
+
+// ===== AI 形象照生成 =====
+var aiGenInProgress = false;
+
+async function generateAIImage() {
+  if (aiGenInProgress) return;
+  if (!currentImageGenPrompt || currentImageGenPrompt.length < 5) {
+    showToast('请先完成照片分析再生成形象照');
+    return;
+  }
+  aiGenInProgress = true;
+  btnAIGen.style.display = 'none';
+  aiImageLoading.classList.add('show');
+  aiImageResult.classList.remove('show');
+  aiImageError.classList.remove('show');
+
+  try {
+    var apiKey = getApiKey();
+    // 提交任务
+    var submitBody = {
+      model: 'wanx-v1',
+      input: { prompt: currentImageGenPrompt },
+      parameters: { size: '1024*1024', n: 1 }
+    };
+    var submitResp = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey,
+        'X-DashScope-Async': 'enable'
+      },
+      body: JSON.stringify(submitBody)
+    });
+    var submitData = await submitResp.json();
+
+    if (!submitResp.ok || !submitData.output || !submitData.output.task_id) {
+      var errMsg = '生成失败：';
+      if (submitResp.status === 429) {
+        errMsg = '今日免费次数已用完，请明天再试。';
+      } else if (submitData.message) {
+        errMsg += submitData.message;
+      } else {
+        errMsg += '请稍后重试';
+      }
+      aiImageError.textContent = errMsg;
+      aiImageError.classList.add('show');
+      aiGenInProgress = false;
+      btnAIGen.style.display = 'inline-block';
+      aiImageLoading.classList.remove('show');
+      console.error('AI image gen submit error:', JSON.stringify(submitData));
+      return;
+    }
+
+    var taskId = submitData.output.task_id;
+    // 轮询结果（最多20次，每次3秒）
+    var imageUrl = null;
+    for (var poll = 0; poll < 20; poll++) {
+      await sleep(3000);
+      var pollResp = await fetch('https://dashscope.aliyuncs.com/api/v1/tasks/' + taskId, {
+        headers: { 'Authorization': 'Bearer ' + apiKey }
+      });
+      var pollData = await pollResp.json();
+      if (pollData.output && pollData.output.task_status === 'SUCCEEDED') {
+        imageUrl = pollData.output.results && pollData.output.results[0] && pollData.output.results[0].url;
+        break;
+      } else if (pollData.output && pollData.output.task_status === 'FAILED') {
+        aiImageError.textContent = '形象照生成失败：' + (pollData.output.message || '未知原因');
+        aiImageError.classList.add('show');
+        aiGenInProgress = false;
+        btnAIGen.style.display = 'inline-block';
+        aiImageLoading.classList.remove('show');
+        console.error('AI image gen failed:', JSON.stringify(pollData));
+        return;
+      }
+    }
+
+    if (imageUrl) {
+      aiImage.src = imageUrl;
+      aiImageResult.classList.add('show');
+    } else {
+      aiImageError.textContent = '生成超时，请稍后重试';
+      aiImageError.classList.add('show');
+      console.error('AI image gen timeout for task:', taskId);
+    }
+  } catch (e) {
+    aiImageError.textContent = '网络错误，请检查连接后重试';
+    aiImageError.classList.add('show');
+    console.error('AI image gen error:', e.message || e);
+  }
+  aiGenInProgress = false;
+  btnAIGen.style.display = 'inline-block';
+  aiImageLoading.classList.remove('show');
+}
+
+function sleep(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+// ===== 工具函数 =====
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.classList.add('show');
+}
+
+function hideError() {
+  errorMsg.textContent = '';
+  errorMsg.classList.remove('show');
+}
+
+function restart() {
+  currentImageData = null;
+  currentImageGenPrompt = '';
+  mainPhoto.src = '';
+  fileInput.value = '';
+  uploadArea.classList.remove('has-image');
+  mainCard.classList.remove('show');
+  photoActions.style.display = 'flex';
+  loadingInline.classList.remove('show');
+  resultContent.classList.remove('show');
+  photoTypeBanner.classList.remove('show');
+  photoTypeBanner.innerHTML = '';
+  postureBody.innerHTML = '';
+  postureCard.classList.remove('open', 'locked');
+  photoAdviceBody.innerHTML = '';
+  photoAdviceCard.classList.remove('open', 'locked');
+  styleBody.innerHTML = '';
+  styleCard.classList.remove('open', 'locked');
+  btnAIGen.style.display = 'inline-block';
+  btnAIGen.disabled = true;
+  aiImageLoading.classList.remove('show');
+  aiImageResult.classList.remove('show');
+  aiImageError.classList.remove('show');
+  aiImage.src = '';
+  hideError();
+  breakdown.innerHTML = '';
+  scoreBig.textContent = '--';
+  scoreComment.innerHTML = '';
+}
+</script>
+
+</body>
+</html>
