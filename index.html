@@ -964,9 +964,24 @@ async function callQwenAPI(apiKey, imageData) {
   if (codeBlockMatch) {
     jsonStr = codeBlockMatch[1];
   }
+  jsonStr = sanitizeJSON(jsonStr);
   var result = JSON.parse(jsonStr);
   result = addRandomDecimals(result);
   return result;
+}
+
+function sanitizeJSON(str) {
+  // 移除字符串值内部的未转义控制字符（换行、制表等）
+  // 策略：匹配所有 JSON 字符串值，替换其中的控制字符
+  return str.replace(/"([^"\\]|\\.)*"/g, function(match) {
+    // 替换字符串内的裸控制字符为转义形式
+    return match.replace(/[\x00-\x1F\x7F]/g, function(ch) {
+      if (ch === '\n') return '\\n';
+      if (ch === '\r') return '\\r';
+      if (ch === '\t') return '\\t';
+      return ' ';
+    });
+  });
 }
 
 function addRandomDecimals(result) {
